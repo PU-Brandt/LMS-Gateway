@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="LMS Gateway">
+  <rect width="128" height="128" rx="24" fill="#2563eb"/>
+  <path d="M24 52h18l26-22v68L42 76H24z" fill="#fff"/>
+  <path d="M78 47c8 9 8 25 0 34" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M92 33c17 18 17 44 0 62" fill="none" stroke="#dbeafe" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="100" cy="28" r="7" fill="#93c5fd"/>
+</svg>

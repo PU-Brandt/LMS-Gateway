@@ -1,5 +1,5 @@
 name: LMS Gateway Control
-version: "0.1.2"
+version: "0.1.4"
 slug: lms_gateway_control
 description: Home-Assistant control panel for an external LMS Gateway service
 url: https://github.com/PU-Brandt/LMS-Gateway

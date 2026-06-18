@@ -13,7 +13,7 @@ import requests
 
 INGRESS_PORT = 8099
 OPTIONS_PATH = Path("/data/options.json")
-ADDON_VERSION = "0.1.2"
+ADDON_VERSION = "0.1.4"
 
 
 def load_options() -> dict[str, Any]:
@@ -142,7 +142,7 @@ def render_page() -> bytes:
       <h2 style="margin-right:auto">Status</h2>
       <button onclick="loadAll()">Aktualisieren</button>
       <button class="secondary" onclick="runAction('test_connection')">Verbindung testen</button>
-      <button class="secondary" onclick="runAction('refresh_players')">Player aktualisieren</button>
+      <button class="secondary" onclick="scanLmsPlayers()">Player aktualisieren</button>
       <button class="secondary" onclick="runAction('reload')">Neu laden</button>
       <button class="danger" onclick="runCritical('restart')">Neustart</button>
       <button class="danger" onclick="runCritical('shutdown')">Beenden</button>
@@ -408,7 +408,7 @@ async function scanLmsPlayers() {{
     }}
     currentConfig.players = existing;
     renderPlayers(existing);
-    message.textContent = data.message || 'LMS-Player aktualisiert.';
+    message.textContent = `${{data.message || 'LMS-Player aktualisiert.'}} Zum dauerhaften Uebernehmen bitte speichern.`;
     await loadAll();
   }} catch (error) {{
     message.textContent = error.message;

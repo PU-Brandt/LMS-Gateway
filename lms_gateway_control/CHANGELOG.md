@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.4
+
+- Repository-README um LMS-Gateway-Symbol ergaenzt.
+- Add-on-Icon und Logo fuer Home Assistant hinzugefuegt.
+
+## 0.1.3
+
+- Status-Button `Player aktualisieren` aktualisiert nun ebenfalls die Player-Liste in der Konfigurationsoberflaeche.
+- Statusdaten aktualisieren die bekannten Raeume nach dem LMS-Live-Scan.
+
 ## 0.1.2
 
 - Player-Konfiguration kann ueber `LMS auslesen` direkt aus dem Logitech Media Server aktualisiert werden.
