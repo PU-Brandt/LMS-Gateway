@@ -13,7 +13,7 @@ import requests
 
 INGRESS_PORT = 8099
 OPTIONS_PATH = Path("/data/options.json")
-ADDON_VERSION = "0.1.1"
+ADDON_VERSION = "0.1.2"
 
 
 def load_options() -> dict[str, Any]:
@@ -185,7 +185,7 @@ def render_page() -> bytes:
 
     <div class="actions" style="margin-top:18px">
       <div class="subhead" style="margin:0 auto 0 0">Player und Raeume</div>
-      <button class="secondary" onclick="addPlayerRow()">Player hinzufuegen</button>
+      <button class="secondary" onclick="scanLmsPlayers()">LMS auslesen</button>
     </div>
     <div id="playersRows" class="rows"></div>
 
@@ -386,6 +386,54 @@ function collectPlayers() {{
     players[room] = player;
   }});
   return players;
+}}
+
+async function scanLmsPlayers() {{
+  const message = document.getElementById('message');
+  try {{
+    const data = await requestJson('./api/actions/refresh_players', {{method: 'POST'}});
+    const existing = collectPlayers();
+    for (const lmsPlayer of data.players || []) {{
+      const playerId = String(lmsPlayer.playerid || lmsPlayer.id || '').trim();
+      const lmsName = String(lmsPlayer.name || lmsPlayer.player_name || lmsPlayer.playername || '').trim();
+      if (!playerId && !lmsName) continue;
+      const room = findRoomForLmsPlayer(existing, playerId, lmsName) || normalizeRoomName(lmsName || playerId);
+      const current = existing[room] || {{}};
+      existing[room] = {{
+        ...current,
+        id: playerId || current.id || '',
+        name: current.name || lmsName || room,
+        lms_name: lmsName || current.lms_name || ''
+      }};
+    }}
+    currentConfig.players = existing;
+    renderPlayers(existing);
+    message.textContent = data.message || 'LMS-Player aktualisiert.';
+    await loadAll();
+  }} catch (error) {{
+    message.textContent = error.message;
+  }}
+}}
+
+function findRoomForLmsPlayer(players, playerId, lmsName) {{
+  const normalizedName = normalizeRoomName(lmsName);
+  for (const [room, player] of Object.entries(players)) {{
+    if (playerId && String(player.id || '').trim().toLowerCase() === playerId.toLowerCase()) return room;
+    if (normalizedName && normalizeRoomName(player.lms_name || player.name || room) === normalizedName) return room;
+  }}
+  return '';
+}}
+
+function normalizeRoomName(value) {{
+  return String(value || '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\\s+/g, ' ');
 }}
 
 function renderDevices(devices) {{

@@ -1,5 +1,7 @@
 # LMS Gateway Control
 
+Aktuelle Add-on-Version: `0.1.2`
+
 Dieses Add-on stellt eine Home-Assistant-Seitenleistenoberflaeche fuer einen extern laufenden LMS Gateway Dienst bereit.
 
 ## Optionen
@@ -9,6 +11,8 @@ Dieses Add-on stellt eine Home-Assistant-Seitenleistenoberflaeche fuer einen ext
 - `api_base_path`: API-Basispfad, Standard `/api/v1`.
 - `api_token`: optionales gemeinsames API-Token. Standard ist leer; dann arbeitet das Add-on ohne Token.
 - `request_timeout_seconds`: Timeout fuer API-Aufrufe.
+
+Die Schaltflaeche `LMS auslesen` liest die aktuell vom Logitech Media Server gemeldeten Player ein und uebernimmt sie in die Player-Konfiguration.
 
 ## Voraussetzungen
 

@@ -1,5 +1,7 @@
 # LMS Gateway Home Assistant Add-on Repository
 
+Aktuelle Add-on-Version: `0.1.2`
+
 Dieses Repository stellt das Home-Assistant-Add-on `LMS Gateway Control` bereit.
 
 Das Add-on enthaelt nicht die LMS-Steuerlogik. Es dient als installierbare Home-Assistant-Oberflaeche fuer einen extern laufenden LMS-Gateway-Dienst.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Player-Konfiguration kann ueber `LMS auslesen` direkt aus dem Logitech Media Server aktualisiert werden.
+- Gefundene LMS-Player werden in der Home-Assistant-Konfigurationsoberflaeche sichtbar und koennen gespeichert werden.
+
 ## 0.1.1
 
 - Konfigurationsoberflaeche um Formularfelder fuer Server, LMS, Sicherheit, Suche, Player und Eingabegeraete erweitert.
