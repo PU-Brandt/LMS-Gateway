@@ -13,7 +13,7 @@ import requests
 
 INGRESS_PORT = 8099
 OPTIONS_PATH = Path("/data/options.json")
-ADDON_VERSION = "0.1.0"
+ADDON_VERSION = "0.1.1"
 
 
 def load_options() -> dict[str, Any]:
