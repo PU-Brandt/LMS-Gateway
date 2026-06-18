@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- Steuerlogik um `Synchronisierung abbrechen` erweitert.
+- LMS Gateway kann alle aktiven Player-Synchronisierungen ueber LMS `sync -` aufheben.
+
 ## 0.1.4
 
 - Repository-README um LMS-Gateway-Symbol ergaenzt.

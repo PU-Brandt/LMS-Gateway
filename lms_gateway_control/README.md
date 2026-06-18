@@ -1,6 +1,6 @@
 # LMS Gateway Control
 
-Aktuelle Add-on-Version: `0.1.4`
+Aktuelle Add-on-Version: `0.1.5`
 
 Dieses Add-on stellt eine Home-Assistant-Seitenleistenoberflaeche fuer einen extern laufenden LMS Gateway Dienst bereit.
 
