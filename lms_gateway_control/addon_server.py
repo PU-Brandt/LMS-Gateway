@@ -99,6 +99,15 @@ def render_page() -> bytes:
     .banner.ok {{ border-color: #bbf7d0; background: #ecfdf5; }}
     .banner.error {{ border-color: #fecaca; background: #fef2f2; }}
     textarea {{ width: 100%; min-height: 360px; box-sizing: border-box; border: 1px solid #b8c4d0; border-radius: 6px; padding: 10px; font: 13px Consolas, monospace; resize: vertical; }}
+    label {{ display: block; font-size: 12px; color: #596673; margin-bottom: 5px; }}
+    input, select {{ width: 100%; box-sizing: border-box; border: 1px solid #b8c4d0; border-radius: 6px; padding: 8px 9px; font: inherit; background: #fff; color: #1f2933; }}
+    .form-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }}
+    .field {{ min-width: 0; }}
+    .subhead {{ font-size: 15px; font-weight: 700; margin: 18px 0 10px; }}
+    .rows {{ display: grid; gap: 10px; }}
+    .row-card {{ border: 1px solid #d8e0e8; border-radius: 6px; padding: 12px; background: #f9fbfd; }}
+    .player-grid {{ display: grid; grid-template-columns: 1fr 1.4fr 1.2fr 1.4fr 1.6fr auto; gap: 8px; align-items: end; }}
+    .device-grid {{ display: grid; grid-template-columns: 1.3fr 1.3fr auto; gap: 8px; align-items: end; }}
     button {{ border: 0; border-radius: 6px; background: #2563eb; color: white; padding: 9px 13px; font: inherit; cursor: pointer; }}
     button.secondary {{ background: #52606d; }}
     button.danger {{ background: #b42318; }}
@@ -107,9 +116,10 @@ def render_page() -> bytes:
     #message {{ min-height: 22px; }}
     @media (prefers-color-scheme: dark) {{
       body {{ background: #11161c; color: #e6edf3; }}
-      section, textarea {{ background: #171d24; color: #e6edf3; border-color: #344250; }}
+      section, textarea, input, select {{ background: #171d24; color: #e6edf3; border-color: #344250; }}
       .tile, pre {{ background: #111820; border-color: #344250; }}
-      .label {{ color: #aab6c2; }}
+      .label, label {{ color: #aab6c2; }}
+      .row-card {{ background: #111820; border-color: #344250; }}
       .badge {{ background: #273444; color: #d6e0ea; }}
       .banner {{ background: #332414; border-color: #7a4b18; }}
       .banner.ok {{ background: #133226; border-color: #246b4a; }}
@@ -151,8 +161,44 @@ def render_page() -> bytes:
       <h2 style="margin-right:auto">Konfiguration</h2>
       <button class="secondary" onclick="loadConfig()">Einlesen</button>
       <button onclick="saveConfig()">Speichern</button>
+      <button class="secondary" onclick="toggleAdvanced()">JSON anzeigen</button>
     </div>
-    <textarea id="configText" spellcheck="false"></textarea>
+    <div class="subhead">Server und LMS</div>
+    <div class="form-grid">
+      <div class="field"><label for="lmsHost">LMS IP oder Host</label><input id="lmsHost"></div>
+      <div class="field"><label for="lmsHttpPort">LMS Web-Port</label><input id="lmsHttpPort" type="number" min="1" max="65535"></div>
+      <div class="field"><label for="lmsCliPort">LMS CLI-Port</label><input id="lmsCliPort" type="number" min="1" max="65535"></div>
+      <div class="field"><label for="lmsTimeout">Timeout Sekunden</label><input id="lmsTimeout" type="number" min="1" max="300"></div>
+      <div class="field"><label for="dialogTtl">Dialog-Zeitfenster Sekunden</label><input id="dialogTtl" type="number" min="30" max="3600"></div>
+      <div class="field"><label for="gatewayHost">Gateway Host</label><input id="gatewayHost"></div>
+      <div class="field"><label for="gatewayPort">Gateway Port</label><input id="gatewayPort" type="number" min="1" max="65535"></div>
+      <div class="field"><label for="gatewayPublicUrl">Adresse des Pipedienstes</label><input id="gatewayPublicUrl"></div>
+    </div>
+
+    <div class="subhead">Sicherheit und Suche</div>
+    <div class="form-grid">
+      <div class="field"><label for="securityToken">API-Token optional</label><input id="securityToken" type="password" autocomplete="new-password"></div>
+      <div class="field"><label for="matchMinScore">Mindesttreffer Suche</label><input id="matchMinScore" type="number" min="0" max="1" step="0.01"></div>
+      <div class="field"><label for="artistLimit">Kuenstler-Suchlimit</label><input id="artistLimit" type="number" min="1" max="500"></div>
+      <div class="field"><label for="albumLimit">Album-Suchlimit</label><input id="albumLimit" type="number" min="1" max="500"></div>
+    </div>
+
+    <div class="actions" style="margin-top:18px">
+      <div class="subhead" style="margin:0 auto 0 0">Player und Raeume</div>
+      <button class="secondary" onclick="addPlayerRow()">Player hinzufuegen</button>
+    </div>
+    <div id="playersRows" class="rows"></div>
+
+    <div class="actions" style="margin-top:18px">
+      <div class="subhead" style="margin:0 auto 0 0">Eingabegeraete</div>
+      <button class="secondary" onclick="addDeviceRow()">Geraet hinzufuegen</button>
+    </div>
+    <div id="devicesRows" class="rows"></div>
+
+    <div id="advancedConfig" style="display:none; margin-top:18px">
+      <div class="subhead">Erweiterte JSON-Konfiguration</div>
+      <textarea id="configText" spellcheck="false"></textarea>
+    </div>
   </section>
   <section>
     <div class="actions">
@@ -174,6 +220,24 @@ async function requestJson(url, options) {{
     throw new Error(data.message || data.detail || `HTTP ${{response.status}}`);
   }}
   return data;
+}}
+
+let currentConfig = {{}};
+let advancedVisible = false;
+
+function value(id) {{
+  return document.getElementById(id).value.trim();
+}}
+
+function setValue(id, nextValue) {{
+  document.getElementById(id).value = nextValue ?? '';
+}}
+
+function numberValue(id, fallback) {{
+  const raw = value(id);
+  if (raw === '') return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }}
 
 async function loadAll() {{
@@ -199,22 +263,169 @@ function renderStatus(status) {{
 
 async function loadConfig() {{
   const data = await requestJson('./api/config');
-  document.getElementById('configText').value = JSON.stringify(data.config || {{}}, null, 2);
+  currentConfig = data.config || {{}};
+  renderConfigForm();
 }}
 
 async function saveConfig() {{
   const message = document.getElementById('message');
   try {{
-    const config = JSON.parse(document.getElementById('configText').value || '{{}}');
+    const config = advancedVisible
+      ? JSON.parse(document.getElementById('configText').value || '{{}}')
+      : collectConfigForm();
     const data = await requestJson('./api/config', {{
       method: 'PUT',
       headers: {{'Content-Type': 'application/json'}},
       body: JSON.stringify({{config}})
     }});
+    currentConfig = config;
+    renderConfigForm();
     message.textContent = data.message || 'Gespeichert.';
     await loadAll();
   }} catch (error) {{
     message.textContent = error.message;
+  }}
+}}
+
+function renderConfigForm() {{
+  const cfg = currentConfig || {{}};
+  const lms = cfg.lms || {{}};
+  const gateway = cfg.gateway || {{}};
+  const security = cfg.security || {{}};
+  const dialog = cfg.dialog || {{}};
+  const matching = cfg.matching || {{}};
+
+  setValue('lmsHost', lms.host || '');
+  setValue('lmsHttpPort', lms.http_port ?? 9000);
+  setValue('lmsCliPort', lms.cli_port ?? 9090);
+  setValue('lmsTimeout', lms.timeout_seconds ?? 8);
+  setValue('dialogTtl', dialog.session_ttl_seconds ?? 180);
+  setValue('gatewayHost', gateway.host || '0.0.0.0');
+  setValue('gatewayPort', gateway.port ?? 8088);
+  setValue('gatewayPublicUrl', gateway.public_url || '');
+  setValue('securityToken', security.token || '');
+  setValue('matchMinScore', matching.min_score ?? 0.55);
+  setValue('artistLimit', matching.artist_limit ?? 100);
+  setValue('albumLimit', matching.album_limit ?? 100);
+
+  renderPlayers(cfg.players || {{}});
+  renderDevices(cfg.devices || {{}});
+  document.getElementById('configText').value = JSON.stringify(cfg, null, 2);
+}}
+
+function collectConfigForm() {{
+  const cfg = structuredClone(currentConfig || {{}});
+  cfg.lms = cfg.lms || {{}};
+  cfg.gateway = cfg.gateway || {{}};
+  cfg.security = cfg.security || {{}};
+  cfg.dialog = cfg.dialog || {{}};
+  cfg.matching = cfg.matching || {{}};
+
+  cfg.lms.host = value('lmsHost');
+  cfg.lms.http_port = numberValue('lmsHttpPort', 9000);
+  cfg.lms.cli_port = numberValue('lmsCliPort', 9090);
+  cfg.lms.timeout_seconds = numberValue('lmsTimeout', 8);
+  cfg.gateway.host = value('gatewayHost') || '0.0.0.0';
+  cfg.gateway.port = numberValue('gatewayPort', 8088);
+  cfg.gateway.public_url = value('gatewayPublicUrl');
+  cfg.security.token = value('securityToken');
+  cfg.dialog.session_ttl_seconds = numberValue('dialogTtl', 180);
+  cfg.matching.min_score = numberValue('matchMinScore', 0.55);
+  cfg.matching.artist_limit = numberValue('artistLimit', 100);
+  cfg.matching.album_limit = numberValue('albumLimit', 100);
+
+  cfg.players = collectPlayers();
+  cfg.devices = collectDevices();
+  return cfg;
+}}
+
+function renderPlayers(players) {{
+  const container = document.getElementById('playersRows');
+  container.innerHTML = '';
+  Object.entries(players).forEach(([room, player]) => addPlayerRow(room, player));
+}}
+
+function addPlayerRow(room = '', player = {{}}) {{
+  const container = document.getElementById('playersRows');
+  const row = document.createElement('div');
+  row.className = 'row-card player-grid';
+  row.innerHTML = `
+    <div class="field"><label>Raum</label><input data-player-field="room"></div>
+    <div class="field"><label>LMS Player-ID</label><input data-player-field="id"></div>
+    <div class="field"><label>Anzeigename</label><input data-player-field="name"></div>
+    <div class="field"><label>LMS Name</label><input data-player-field="lms_name"></div>
+    <div class="field"><label>Aliasse kommagetrennt</label><input data-player-field="aliases"></div>
+    <button class="danger" type="button">Entfernen</button>
+  `;
+  row.querySelector('[data-player-field="room"]').value = room;
+  row.querySelector('[data-player-field="id"]').value = player.id || '';
+  row.querySelector('[data-player-field="name"]').value = player.name || '';
+  row.querySelector('[data-player-field="lms_name"]').value = player.lms_name || '';
+  row.querySelector('[data-player-field="aliases"]').value = (player.aliases || []).join(', ');
+  row.querySelector('button').onclick = () => row.remove();
+  container.appendChild(row);
+}}
+
+function collectPlayers() {{
+  const players = {{}};
+  document.querySelectorAll('#playersRows .row-card').forEach(row => {{
+    const room = row.querySelector('[data-player-field="room"]').value.trim();
+    if (!room) return;
+    const player = {{
+      id: row.querySelector('[data-player-field="id"]').value.trim()
+    }};
+    const name = row.querySelector('[data-player-field="name"]').value.trim();
+    const lmsName = row.querySelector('[data-player-field="lms_name"]').value.trim();
+    const aliases = row.querySelector('[data-player-field="aliases"]').value
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean);
+    if (name) player.name = name;
+    if (lmsName) player.lms_name = lmsName;
+    if (aliases.length) player.aliases = aliases;
+    players[room] = player;
+  }});
+  return players;
+}}
+
+function renderDevices(devices) {{
+  const container = document.getElementById('devicesRows');
+  container.innerHTML = '';
+  Object.entries(devices).forEach(([device, config]) => addDeviceRow(device, config));
+}}
+
+function addDeviceRow(device = '', config = {{}}) {{
+  const container = document.getElementById('devicesRows');
+  const row = document.createElement('div');
+  row.className = 'row-card device-grid';
+  row.innerHTML = `
+    <div class="field"><label>Geraet oder Quelle</label><input data-device-field="device"></div>
+    <div class="field"><label>Standardraum</label><input data-device-field="default_room"></div>
+    <button class="danger" type="button">Entfernen</button>
+  `;
+  row.querySelector('[data-device-field="device"]').value = device;
+  row.querySelector('[data-device-field="default_room"]').value = config.default_room || '';
+  row.querySelector('button').onclick = () => row.remove();
+  container.appendChild(row);
+}}
+
+function collectDevices() {{
+  const devices = {{}};
+  document.querySelectorAll('#devicesRows .row-card').forEach(row => {{
+    const device = row.querySelector('[data-device-field="device"]').value.trim();
+    if (!device) return;
+    const defaultRoom = row.querySelector('[data-device-field="default_room"]').value.trim();
+    devices[device] = defaultRoom ? {{default_room: defaultRoom}} : {{}};
+  }});
+  return devices;
+}}
+
+function toggleAdvanced() {{
+  advancedVisible = !advancedVisible;
+  const panel = document.getElementById('advancedConfig');
+  panel.style.display = advancedVisible ? 'block' : 'none';
+  if (advancedVisible) {{
+    document.getElementById('configText').value = JSON.stringify(collectConfigForm(), null, 2);
   }}
 }}
 
