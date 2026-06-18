@@ -9,7 +9,7 @@ Das Add-on enthaelt nicht die LMS-Steuerlogik. Es dient als installierbare Home-
 1. In Home Assistant den Add-on Store oeffnen.
 2. Dieses Repository als benutzerdefiniertes Add-on-Repository hinzufuegen.
 3. `LMS Gateway Control` installieren.
-4. In den Add-on-Optionen Host, Port und optional API-Token des externen LMS Gateway eintragen.
+4. In den Add-on-Optionen Host und Port des externen LMS Gateway eintragen. Das API-Token bleibt standardmaessig leer.
 
 ## Architektur
 

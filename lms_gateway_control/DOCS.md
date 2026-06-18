@@ -21,4 +21,4 @@ Das Add-on erwartet diese Endpunkte auf dem externen Dienst:
 - `restart`
 - `shutdown`
 
-`restart` und `shutdown` muessen in der Oberflaeche bestaetigt werden. Wenn im externen Dienst ein Token gesetzt ist, werden schreibende und kritische API-Aufrufe mit `Authorization: Bearer <token>` abgesichert.
+`restart` und `shutdown` muessen in der Oberflaeche bestaetigt werden. Standardmaessig ist kein API-Token gesetzt. Wenn im externen Dienst ein Token gesetzt ist, werden schreibende und kritische API-Aufrufe mit `Authorization: Bearer <token>` abgesichert.
