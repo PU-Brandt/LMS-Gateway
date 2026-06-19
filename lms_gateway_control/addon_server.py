@@ -13,7 +13,7 @@ import requests
 
 INGRESS_PORT = 8099
 OPTIONS_PATH = Path("/data/options.json")
-ADDON_VERSION = "0.1.5"
+ADDON_VERSION = "0.1.6"
 
 
 def load_options() -> dict[str, Any]:
@@ -44,6 +44,14 @@ def build_base_url(options: dict[str, Any]) -> str:
     return urljoin(root.rstrip("/") + "/", base_path.strip("/") + "/")
 
 
+def build_gateway_root_url(options: dict[str, Any]) -> str:
+    base_url = build_base_url(options)
+    if not base_url:
+        return ""
+    parsed = urlparse(base_url)
+    return f"{parsed.scheme}://{parsed.netloc}/"
+
+
 def tool_request(method: str, path: str, payload: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
     options = load_options()
     base_url = build_base_url(options)
@@ -56,10 +64,11 @@ def tool_request(method: str, path: str, payload: dict[str, Any] | None = None) 
         headers["Authorization"] = f"Bearer {token}"
 
     timeout = int(options.get("request_timeout_seconds") or 30)
+    request_base = build_gateway_root_url(options) if path.startswith("lms/") else base_url
     try:
         response = requests.request(
             method,
-            urljoin(base_url, path.lstrip("/")),
+            urljoin(request_base, path.lstrip("/")),
             headers=headers,
             json=payload,
             timeout=timeout,
@@ -102,6 +111,9 @@ def render_page() -> bytes:
     label {{ display: block; font-size: 12px; color: #596673; margin-bottom: 5px; }}
     input, select {{ width: 100%; box-sizing: border-box; border: 1px solid #b8c4d0; border-radius: 6px; padding: 8px 9px; font: inherit; background: #fff; color: #1f2933; }}
     .form-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }}
+    .command-grid {{ display: grid; grid-template-columns: minmax(280px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr) auto auto; gap: 10px; align-items: end; }}
+    .checkline {{ display: flex; align-items: center; gap: 8px; color: #596673; margin-bottom: 9px; white-space: nowrap; }}
+    .checkline input {{ width: auto; }}
     .field {{ min-width: 0; }}
     .subhead {{ font-size: 15px; font-weight: 700; margin: 18px 0 10px; }}
     .rows {{ display: grid; gap: 10px; }}
@@ -114,6 +126,9 @@ def render_page() -> bytes:
     .actions {{ display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }}
     pre {{ white-space: pre-wrap; word-break: break-word; background: #f8fafc; border: 1px solid #d8e0e8; border-radius: 6px; padding: 12px; max-height: 300px; overflow: auto; }}
     #message {{ min-height: 22px; }}
+    @media (max-width: 900px) {{
+      .command-grid {{ grid-template-columns: 1fr; }}
+    }}
     @media (prefers-color-scheme: dark) {{
       body {{ background: #11161c; color: #e6edf3; }}
       section, textarea, input, select {{ background: #171d24; color: #e6edf3; border-color: #344250; }}
@@ -142,8 +157,6 @@ def render_page() -> bytes:
       <h2 style="margin-right:auto">Status</h2>
       <button onclick="loadAll()">Aktualisieren</button>
       <button class="secondary" onclick="runAction('test_connection')">Verbindung testen</button>
-      <button class="secondary" onclick="scanLmsPlayers()">Player aktualisieren</button>
-      <button class="secondary" onclick="runAction('reload')">Neu laden</button>
       <button class="danger" onclick="runCritical('restart')">Neustart</button>
       <button class="danger" onclick="runCritical('shutdown')">Beenden</button>
     </div>
@@ -183,6 +196,16 @@ def render_page() -> bytes:
       <div class="field"><label for="albumLimit">Album-Suchlimit</label><input id="albumLimit" type="number" min="1" max="500"></div>
     </div>
 
+    <div class="subhead">Befehl testen</div>
+    <div class="command-grid">
+      <div class="field"><label for="commandText">Steuersatz</label><input id="commandText" placeholder="z.B. spiele das zweite Album im Schlafzimmer"></div>
+      <div class="field"><label for="commandRoom">Raum optional</label><input id="commandRoom"></div>
+      <div class="field"><label for="commandDevice">Dialogkennung</label><input id="commandDevice" value="admin_test"></div>
+      <label class="checkline"><input id="commandDryRun" type="checkbox" checked>Nur pruefen</label>
+      <button onclick="testCommand()">Testen</button>
+    </div>
+    <pre id="commandResult">Noch kein Test ausgefuehrt.</pre>
+
     <div class="actions" style="margin-top:18px">
       <div class="subhead" style="margin:0 auto 0 0">Player und Raeume</div>
       <button class="secondary" onclick="scanLmsPlayers()">LMS auslesen</button>
@@ -196,7 +219,11 @@ def render_page() -> bytes:
     <div id="devicesRows" class="rows"></div>
 
     <div id="advancedConfig" style="display:none; margin-top:18px">
-      <div class="subhead">Erweiterte JSON-Konfiguration</div>
+      <div class="actions">
+        <div class="subhead" style="margin:0 auto 0 0">Erweiterte JSON-Konfiguration</div>
+        <button class="secondary" onclick="applyJsonToForm()">JSON in Maske uebernehmen</button>
+        <button class="secondary" onclick="syncFormToJson()">Maske in JSON schreiben</button>
+      </div>
       <textarea id="configText" spellcheck="false"></textarea>
     </div>
   </section>
@@ -224,6 +251,7 @@ async function requestJson(url, options) {{
 
 let currentConfig = {{}};
 let advancedVisible = false;
+let jsonDirty = false;
 
 function value(id) {{
   return document.getElementById(id).value.trim();
@@ -265,12 +293,13 @@ async function loadConfig() {{
   const data = await requestJson('./api/config');
   currentConfig = data.config || {{}};
   renderConfigForm();
+  document.getElementById('message').textContent = 'Konfiguration aus der Datei eingelesen. Nicht gespeicherte Aenderungen in der Maske wurden verworfen.';
 }}
 
 async function saveConfig() {{
   const message = document.getElementById('message');
   try {{
-    const config = advancedVisible
+    const config = advancedVisible && jsonDirty
       ? JSON.parse(document.getElementById('configText').value || '{{}}')
       : collectConfigForm();
     const data = await requestJson('./api/config', {{
@@ -310,7 +339,7 @@ function renderConfigForm() {{
 
   renderPlayers(cfg.players || {{}});
   renderDevices(cfg.devices || {{}});
-  document.getElementById('configText').value = JSON.stringify(cfg, null, 2);
+  setJsonText(cfg);
 }}
 
 function collectConfigForm() {{
@@ -473,7 +502,59 @@ function toggleAdvanced() {{
   const panel = document.getElementById('advancedConfig');
   panel.style.display = advancedVisible ? 'block' : 'none';
   if (advancedVisible) {{
-    document.getElementById('configText').value = JSON.stringify(collectConfigForm(), null, 2);
+    syncFormToJson();
+  }}
+}}
+
+function setJsonText(cfg) {{
+  const textarea = document.getElementById('configText');
+  textarea.value = JSON.stringify(cfg, null, 2);
+  jsonDirty = false;
+}}
+
+function syncFormToJson() {{
+  setJsonText(collectConfigForm());
+  document.getElementById('message').textContent = 'Maskenwerte wurden in die JSON-Ansicht uebernommen.';
+}}
+
+function applyJsonToForm() {{
+  const message = document.getElementById('message');
+  try {{
+    const config = JSON.parse(document.getElementById('configText').value || '{{}}');
+    currentConfig = config;
+    renderConfigForm();
+    message.textContent = 'JSON wurde in die Maske uebernommen. Zum dauerhaften Speichern bitte Speichern ausfuehren.';
+  }} catch (error) {{
+    message.textContent = `JSON konnte nicht gelesen werden: ${{error.message}}`;
+  }}
+}}
+
+async function testCommand() {{
+  const result = document.getElementById('commandResult');
+  const message = document.getElementById('message');
+  const text = value('commandText');
+  if (!text) {{
+    result.textContent = 'Bitte zuerst einen Steuersatz eingeben.';
+    return;
+  }}
+  const payload = {{
+    text,
+    room: value('commandRoom') || null,
+    device: value('commandDevice') || 'admin_test',
+    source: 'admin',
+    dry_run: document.getElementById('commandDryRun').checked
+  }};
+  try {{
+    const data = await requestJson('./api/lms/command', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify(payload)
+    }});
+    result.textContent = JSON.stringify(data, null, 2);
+    message.textContent = data.message || 'Befehl getestet.';
+  }} catch (error) {{
+    result.textContent = error.message;
+    message.textContent = error.message;
   }}
 }}
 
@@ -500,6 +581,7 @@ async function loadLogs() {{
 loadAll();
 loadConfig().catch(() => {{}});
 loadLogs().catch(() => {{}});
+document.getElementById('configText').addEventListener('input', () => {{ jsonDirty = true; }});
 setInterval(loadAll, 10000);
 setInterval(loadLogs, 4000);
 </script>

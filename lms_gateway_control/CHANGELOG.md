@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6
+
+- Doppelte Status-Schaltflaechen `Player aktualisieren` und `Neu laden` aus der Oberflaeche entfernt.
+- JSON-Konfiguration kann gezielt in die Maske uebernommen oder aus der Maske neu erzeugt werden.
+- Befehlstest fuer frei eingegebene LMS-Steuersaetze in der Konfigurationsoberflaeche ergaenzt.
+
 ## 0.1.5
 
 - Steuerlogik um `Synchronisierung abbrechen` erweitert.

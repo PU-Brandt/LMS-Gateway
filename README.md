@@ -2,7 +2,7 @@
 
 ![LMS Gateway](assets/lms-gateway-icon.svg)
 
-Aktuelle Add-on-Version: `0.1.5`
+Aktuelle Add-on-Version: `0.1.6`
 
 Dieses Repository stellt das Home-Assistant-Add-on `LMS Gateway Control` bereit.
 
