@@ -183,6 +183,7 @@ def render_page() -> bytes:
       <div class="field"><label for="lmsCliPort">LMS CLI-Port</label><input id="lmsCliPort" type="number" min="1" max="65535"></div>
       <div class="field"><label for="lmsTimeout">Timeout Sekunden</label><input id="lmsTimeout" type="number" min="1" max="300"></div>
       <div class="field"><label for="dialogTtl">Dialog-Zeitfenster Sekunden</label><input id="dialogTtl" type="number" min="30" max="3600"></div>
+      <div class="field"><label for="controlFollowupSeconds">Steuerbefehl-Folgefenster Sekunden</label><input id="controlFollowupSeconds" type="number" min="0" max="60"></div>
       <div class="field"><label for="gatewayHost">Gateway Host</label><input id="gatewayHost"></div>
       <div class="field"><label for="gatewayPort">Gateway Port</label><input id="gatewayPort" type="number" min="1" max="65535"></div>
       <div class="field"><label for="gatewayPublicUrl">Adresse des Pipedienstes</label><input id="gatewayPublicUrl"></div>
@@ -329,6 +330,7 @@ function renderConfigForm() {{
   setValue('lmsCliPort', lms.cli_port ?? 9090);
   setValue('lmsTimeout', lms.timeout_seconds ?? 8);
   setValue('dialogTtl', dialog.session_ttl_seconds ?? 180);
+  setValue('controlFollowupSeconds', dialog.control_followup_seconds ?? 5);
   setValue('gatewayHost', gateway.host || '0.0.0.0');
   setValue('gatewayPort', gateway.port ?? 8088);
   setValue('gatewayPublicUrl', gateway.public_url || '');
@@ -359,6 +361,7 @@ function collectConfigForm() {{
   cfg.gateway.public_url = value('gatewayPublicUrl');
   cfg.security.token = value('securityToken');
   cfg.dialog.session_ttl_seconds = numberValue('dialogTtl', 180);
+  cfg.dialog.control_followup_seconds = numberValue('controlFollowupSeconds', 5);
   cfg.matching.min_score = numberValue('matchMinScore', 0.55);
   cfg.matching.artist_limit = numberValue('artistLimit', 100);
   cfg.matching.album_limit = numberValue('albumLimit', 100);
